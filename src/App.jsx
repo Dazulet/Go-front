@@ -1,121 +1,42 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { Routes, Route } from 'react-router-dom'
+import MainLayout from './layouts/MainLayout'
+import HomePage from './pages/HomePage'
+import CatalogPage from './pages/CatalogPage'
+import MangaDetailPage from './pages/MangaDetailPage'
+import ReaderPage from './pages/ReaderPage'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import ProfilePage from './pages/ProfilePage'
 
-function App() {
-  const [count, setCount] = useState(0)
-
+function NotFound() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <div className="min-h-screen flex items-center justify-center text-center">
+      <div>
+        <div className="text-8xl font-display font-black gradient-text mb-4">404</div>
+        <h2 className="text-2xl font-display font-bold text-text-primary mb-2">Page Not Found</h2>
+        <p className="text-text-muted mb-6">The page you're looking for doesn't exist.</p>
+        <a href="/" className="px-6 py-3 bg-neon-blue/10 border border-neon-blue/30 text-neon-blue rounded-sm text-sm font-medium hover:bg-neon-blue/20 transition-colors">
+          Go Home
+        </a>
+      </div>
+    </div>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <Routes>
+      {/* Auth routes - no main layout */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      {/* Reader - own layout */}
+      <Route path="/reader/:mangaId/:chapterId" element={<ReaderPage />} />
+      {/* Main layout routes */}
+      <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
+      <Route path="/catalog" element={<MainLayout><CatalogPage /></MainLayout>} />
+      <Route path="/manga/:id" element={<MainLayout><MangaDetailPage /></MainLayout>} />
+      <Route path="/profile" element={<MainLayout><ProfilePage /></MainLayout>} />
+      <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+    </Routes>
+  )
+}
