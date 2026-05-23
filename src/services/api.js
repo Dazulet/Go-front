@@ -83,7 +83,8 @@ export const authService = {
   login: (data) => authApi.post('/auth/login', data).then(res => res.data.data),
   register: (data) => authApi.post('/auth/register', data).then(res => res.data.data),
   getMe: () => authApi.get('/users/me').then(res => res.data.data),
-  
+    getProfile: (id) => authApi.get(`/users/${id}`).then(res => res.data.data),
+
   // Методы для админа
   getAllUsers: () => authApi.get('/users').then(res => res.data.data),
   updateUser: (id, data) => authApi.patch(`/users/${id}`, data).then(res => res.data.data),

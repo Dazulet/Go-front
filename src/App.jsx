@@ -9,6 +9,9 @@ import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 import AdminPage from './pages/AdminPage'
 import AdminMangaDetails from './pages/AdminMangaDetails'
+import AdminMangaCreate from './pages/AdminMangaCreate'
+import AdminMangaEdit from './pages/AdminMangaEdit'
+import AdminUserEdit from './pages/AdminUserEdit'
 
 function NotFound() {
   return (
@@ -41,6 +44,9 @@ export default function App() {
       <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
       <Route path="/admin" element={<MainLayout><AdminPage /></MainLayout>} />
 <Route path="/admin/manga/:id" element={<MainLayout><AdminMangaDetails /></MainLayout>} />
+<Route path="/admin/manga/create" element={<MainLayout><AdminMangaCreate /></MainLayout>} />
+<Route path="/admin/manga/edit/:id" element={<MainLayout><AdminMangaEdit /></MainLayout>} />
+<Route path="/admin/users/edit/:id" element={<MainLayout><AdminUserEdit /></MainLayout>} />
 
     </Routes>
   )
