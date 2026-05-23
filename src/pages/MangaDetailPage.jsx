@@ -16,7 +16,8 @@ export default function MangaDetailPage() {
   const { id } = useParams()
   const { user } = useAuthStore()
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarkStore()
-  
+  const [localLikes, setLocalLikes] = useState(new Set());
+
   const [manga, setManga] = useState(null)
   const [chapters, setChapters] = useState([])
   const [comments, setComments] = useState([])
@@ -37,10 +38,23 @@ export default function MangaDetailPage() {
           mangaService.getChapters(id),
           commentService.getByManga(id)
         ])
-        
+        console.log("Comments from server:", commentsData); // ПРОВЕРЬ: что в поле likes у каждого коммента?
+
         setManga(mangaData)
         setChapters(chaptersData || [])
         setComments(commentsData || [])
+        // --- СИНХРОНИЗАЦИЯ ЛАЙКОВ ---
+      // Собираем ID всех комментов, где is_liked === true
+      const likedIds = new Set();
+      commentsData.forEach(c => {
+        if (c.is_liked) likedIds.add(c.id);
+        // Не забываем про лайки в ответах, если они есть
+        c.replies?.forEach(reply => {
+          if (reply.is_liked) likedIds.add(reply.id);
+        });
+      });
+      
+      setLocalLikes(likedIds);
       } catch (err) {
         console.error("Error fetching data:", err)
       } finally {
@@ -71,28 +85,35 @@ export default function MangaDetailPage() {
   const [likedComments, setLikedComments] = useState(new Set()); // Локальное состояние лайков
 
 const handleToggleLike = async (commentId) => {
-  if (!user) return alert("Войдите, чтобы ставить лайки");
-  
+  if (!user) return alert("Please login to like comments");
+  const numericId = Number(commentId);
+
   try {
-    const res = await commentService.toggleLike(commentId);
+    const response = await commentService.toggleLike(numericId);
     
-    // Обновляем визуально (меняем цвет)
-    setLikedComments(prev => {
+    // Берем action из любого возможного места в ответе
+    const action = response.data?.action || response.action;
+
+    // 1. Обновляем визуальное состояние сердечка
+    setLocalLikes(prev => {
       const next = new Set(prev);
-      if (next.has(commentId)) next.delete(commentId);
-      else next.add(commentId);
+      if (action === 'liked') next.add(numericId);
+      else next.delete(numericId);
       return next;
     });
 
-    // Обновляем счетчик лайков в списке комментов
+    // 2. Обновляем цифру в массиве комментариев
     setComments(prev => prev.map(c => {
-      if (c.id === commentId) {
-        return { ...c, likes: res.action === 'liked' ? c.likes + 1 : Math.max(0, c.likes - 1) };
+      if (Number(c.id) === numericId) {
+        return { 
+          ...c, 
+          likes: action === 'liked' ? (c.likes || 0) + 1 : Math.max(0, (c.likes || 0) - 1) 
+        };
       }
       return c;
     }));
   } catch (err) {
-    console.error(err);
+    console.error("Like error:", err);
   }
 };
 const { isAuthenticated } = useAuthStore();
@@ -279,18 +300,23 @@ useEffect(() => {
                         <span className="text-xs text-text-muted font-mono">{new Date(c.created_at).toLocaleDateString()}</span>
                       </div>
                       <p className="text-sm text-text-secondary leading-relaxed mb-3">{c.body}</p>
-                      <button
+                     <button 
   onClick={() => handleToggleLike(c.id)}
-  className={`flex items-center gap-1.5 text-xs font-mono transition-all duration-300 ${
-    likedComments.has(c.id) 
-      ? 'text-red-500 scale-110' // Если лайкнуто — красный цвет и чуть больше
+  className={`flex items-center gap-1.5 text-xs font-mono transition-all ${
+    localLikes.has(Number(c.id)) // <-- Важно Number(c.id)
+      ? 'text-red-500 font-bold' 
       : 'text-text-muted hover:text-white'
   }`}
 >
-  <svg className="w-4 h-4" fill={likedComments.has(c.id) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
-    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+  <svg 
+    className="w-4 h-4" 
+    fill={localLikes.has(Number(c.id)) ? 'currentColor' : 'none'} 
+    viewBox="0 0 24 24" 
+    stroke="currentColor"
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
   </svg>
-  {c.likes}
+  {c.likes || 0}
 </button>
                     </div>
                   </motion.div>
