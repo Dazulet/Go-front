@@ -94,16 +94,30 @@ export const authService = {
 // --- BOOKMARK SERVICE ---
 export const bookmarkService = {
   getAll: () => mangaApi.get('/bookmarks').then(res => res.data.data),
-  add: (data) => mangaApi.post('/bookmarks', data).then(res => res.data.data),
-  remove: (mangaId) => mangaApi.delete(`/bookmarks/${mangaId}`).then(res => res.data),
+  
+  add: (mangaId) => {
+    // Явно превращаем в число
+    const id = typeof mangaId === 'string' ? parseInt(mangaId, 10) : mangaId;
+    return mangaApi.post('/bookmarks', { 
+      manga_id: id, 
+      status: "reading" 
+    }).then(res => res.data.data);
+  },
+
+  remove: (mangaId) => {
+    // Передаем ID именно как часть пути
+    const id = typeof mangaId === 'string' ? parseInt(mangaId, 10) : mangaId;
+    return mangaApi.delete(`/bookmarks/${id}`).then(res => res.data);
+  },
 }
+
 
 // --- COMMENT SERVICE ---
 export const commentService = {
   getByManga: (mangaId) => commentApi.get(`/comments?manga_id=${mangaId}`).then(res => res.data.data),
   create: (data) => commentApi.post('/comments', data).then(res => res.data.data),
   delete: (id) => commentApi.delete(`/comments/${id}`).then(res => res.data),
-  toggleLike: (id) => commentApi.post(`/comments/${id}/like`).then(res => res.data),
+  toggleLike: (commentId) => commentApi.post(`/comments/${commentId}/like`).then(res => res.data),
 }
 
 // Утилита для получения полных URL картинок (т.к. бэк шлет относительные пути)

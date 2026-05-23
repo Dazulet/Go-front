@@ -37,7 +37,7 @@ export default function AdminMangaDetails() {
     try {
     await mangaService.createChapter(id, {
       number: num,
-      title: newCh.title || "",
+      title: newCh.title || "Chapter " + newCh.number,
         volume: 1
       })
       setNewCh({ number: '', title: '' })
