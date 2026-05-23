@@ -7,6 +7,8 @@ import ReaderPage from './pages/ReaderPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
+import AdminPage from './pages/AdminPage'
+import AdminMangaDetails from './pages/AdminMangaDetails'
 
 function NotFound() {
   return (
@@ -37,6 +39,9 @@ export default function App() {
       <Route path="/manga/:id" element={<MainLayout><MangaDetailPage /></MainLayout>} />
       <Route path="/profile" element={<MainLayout><ProfilePage /></MainLayout>} />
       <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+      <Route path="/admin" element={<MainLayout><AdminPage /></MainLayout>} />
+<Route path="/admin/manga/:id" element={<MainLayout><AdminMangaDetails /></MainLayout>} />
+
     </Routes>
   )
 }

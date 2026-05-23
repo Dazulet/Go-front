@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion'
 import { useBookmarkStore } from '../../store/useAuthStore'
+import { getImageUrl } from '../../services/api' // проверь путь до api.js
 
 // ── Tilt-on-hover 3D effect (lightweight, no WebGL)
 function useTilt(strength = 12) {
@@ -53,8 +54,8 @@ export function MangaCardSmall({ manga, index = 0 }) {
             </div>
           )}
           <img
-            src={manga.cover}
-            alt={manga.title}
+            src={getImageUrl(manga.cover)}
+  alt={manga.title}
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
             className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'} group-hover:scale-105`}

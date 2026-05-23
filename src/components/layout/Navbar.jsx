@@ -78,6 +78,17 @@ export default function Navbar() {
                   )}
                 </Link>
               ))}
+
+              {/* --- АДМИН ССЫЛКА (Desktop) --- */}
+              {user?.role === 'admin' && (
+                <Link 
+                  to="/admin" 
+                  className="px-4 py-2 text-sm font-black text-neon-pink hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-neon-pink animate-pulse" />
+                  ADMIN
+                </Link>
+              )}
             </div>
 
             {/* Spacer */}
@@ -203,7 +214,18 @@ export default function Navbar() {
                 {NAV.map(({ path, label }) => (
                   <Link key={path} to={path} className={`py-3 px-4 rounded-sm text-sm font-medium transition-colors ${location.pathname === path ? 'bg-white/8 text-text-primary border-l-2 border-neon-blue' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}>{label}</Link>
                 ))}
+
+                {/* --- АДМИН ССЫЛКА (Mobile) --- */}
+                {user?.role === 'admin' && (
+                  <Link 
+                    to="/admin" 
+                    className="py-3 px-4 rounded-sm text-sm font-black text-neon-pink hover:bg-neon-pink/10 transition-colors"
+                  >
+                    ADMIN PANEL
+                  </Link>
+                )}
               </nav>
+
               <div className="mt-auto flex flex-col gap-2">
                 {isAuthenticated ? (
                   <>
