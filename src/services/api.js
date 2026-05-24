@@ -100,6 +100,15 @@ uploadPages: (chapterId, files, mangaId) => {
   }).then(res => res.data),
 
 getProgress: () => mangaApi.get('/progress').then(res => res.data.data),
+upsertRating: (mangaId, score) => 
+    mangaApi.post('/ratings', { 
+      manga_id: parseInt(mangaId), 
+      score: parseInt(score) 
+    }).then(res => res.data),
+
+  // Получение оценки текущего пользователя для этой манги
+  getMyRating: (mangaId) => 
+    mangaApi.get(`/ratings/manga/${mangaId}`).then(res => res.data.data),
 }
 
 // --- AUTH SERVICE (Управление пользователями) ---

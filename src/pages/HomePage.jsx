@@ -95,8 +95,8 @@ export default function HomePage() {
         <MangaRow label="Hot Right Now" title="Trending" manga={trending} linkTo="/catalog?sort=trending" badge="LIVE" />
         <GenreSpotlight />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 px-0">
-          <NewChapters />
-          <TopRanking />
+          <NewChapters manga={allManga} />
+<TopRanking manga={allManga} />
         </div>
         <MangaRow label="Fan Favorites" title="Most Popular" manga={popular} linkTo="/catalog?sort=views" />
         <PromoBanner />

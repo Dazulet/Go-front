@@ -17,6 +17,7 @@ export default function MangaDetailPage() {
   const { user } = useAuthStore()
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarkStore()
   const [localLikes, setLocalLikes] = useState(new Set());
+  const [userRating, setUserRating] = useState(0);
 
   const [manga, setManga] = useState(null)
   const [chapters, setChapters] = useState([])
@@ -27,45 +28,64 @@ export default function MangaDetailPage() {
   const [isPosting, setIsPosting] = useState(false)
 
   const bookmarked = isBookmarked(id)
-const firstChapterId = chapters.length > 0 ? chapters[0].id : null;
+  const firstChapterId = chapters.length > 0 ? chapters[0].id : null;
 
   useEffect(() => {
-  // Проверка: если id нет, или это строка "undefined", или это не число — СТОП
-  const mangaId = parseInt(id);
-  if (!id || id === 'undefined' || isNaN(mangaId)) {
-    console.log("Ожидание корректного ID...");
-    return;
-  }
+    if (user && id !== 'undefined') {
+      mangaService.getMyRating(id).then(res => {
+        if (res) setUserRating(res.score);
+      }).catch(() => { });
+    }
+  }, [id, user]);
 
-  const fetchAllData = async () => {
-    setLoading(true);
+  const handleRate = async (score) => {
+    if (!user) return alert("Please login to rate");
     try {
-      // Теперь запросы полетят только с валидным числом
-      const [mangaData, chaptersData, commentsData] = await Promise.all([
-        mangaService.getById(mangaId),
-        mangaService.getChapters(mangaId),
-        commentService.getByManga(mangaId)
-      ]);
-      
-      setManga(mangaData);
-      setChapters(chaptersData || []);
-      setComments(commentsData || []);
-      
-      const likedIds = new Set();
-      (commentsData || []).forEach(c => {
-        if (c.is_liked) likedIds.add(c.id);
-        c.replies?.forEach(r => { if (r.is_liked) likedIds.add(r.id); });
-      });
-      setLocalLikes(likedIds);
+      await mangaService.upsertRating(id, score);
+      setUserRating(score);
+      alert(`You rated this ${score}/10!`);
+      window.location.reload();
     } catch (err) {
-      console.error("Fetch error:", err);
-    } finally {
-      setLoading(false);
+      alert("Error saving rating");
     }
   };
 
-  fetchAllData();
-}, [id]);
+  useEffect(() => {
+    const mangaId = parseInt(id);
+    if (!id || id === 'undefined' || isNaN(mangaId)) {
+      console.log("Ожидание корректного ID...");
+      return;
+    }
+
+    const fetchAllData = async () => {
+      setLoading(true);
+      try {
+        const [mangaData, chaptersData, commentsData] = await Promise.all([
+          mangaService.getById(mangaId),
+          mangaService.getChapters(mangaId),
+          commentService.getByManga(mangaId)
+        ]);
+
+        setManga(mangaData);
+        setChapters(chaptersData || []);
+        setComments(commentsData || []);
+
+        const likedIds = new Set();
+        (commentsData || []).forEach(c => {
+          if (c.is_liked) likedIds.add(c.id);
+          c.replies?.forEach(r => { if (r.is_liked) likedIds.add(r.id); });
+        });
+        setLocalLikes(likedIds);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllData();
+  }, [id]);
+
   const postComment = async () => {
     if (!commentText.trim() || isPosting) return
     setIsPosting(true)
@@ -74,7 +94,6 @@ const firstChapterId = chapters.length > 0 ? chapters[0].id : null;
         manga_id: parseInt(id),
         body: commentText.trim()
       })
-      // Добавляем новый коммент в начало списка
       setComments(prev => [newComment, ...prev])
       setCommentText('')
     } catch (err) {
@@ -84,59 +103,54 @@ const firstChapterId = chapters.length > 0 ? chapters[0].id : null;
     }
   }
 
-  const [likedComments, setLikedComments] = useState(new Set()); // Локальное состояние лайков
+  const [likedComments, setLikedComments] = useState(new Set());
 
-const handleToggleLike = async (commentId) => {
-  if (!user) return alert("Please login to like comments");
-  const numericId = Number(commentId);
+  const handleToggleLike = async (commentId) => {
+    if (!user) return alert("Please login to like comments");
+    const numericId = Number(commentId);
 
-  try {
-    const response = await commentService.toggleLike(numericId);
-    
-    // Берем action из любого возможного места в ответе
-    const action = response.data?.action || response.action;
+    try {
+      const response = await commentService.toggleLike(numericId);
+      const action = response.data?.action || response.action;
 
-    // 1. Обновляем визуальное состояние сердечка
-    setLocalLikes(prev => {
-      const next = new Set(prev);
-      if (action === 'liked') next.add(numericId);
-      else next.delete(numericId);
-      return next;
-    });
+      setLocalLikes(prev => {
+        const next = new Set(prev);
+        if (action === 'liked') next.add(numericId);
+        else next.delete(numericId);
+        return next;
+      });
 
-    // 2. Обновляем цифру в массиве комментариев
-    setComments(prev => prev.map(c => {
-      if (Number(c.id) === numericId) {
-        return { 
-          ...c, 
-          likes: action === 'liked' ? (c.likes || 0) + 1 : Math.max(0, (c.likes || 0) - 1) 
-        };
-      }
-      return c;
-    }));
-  } catch (err) {
-    console.error("Like error:", err);
-  }
-};
-const { isAuthenticated } = useAuthStore();
-const { fetchBookmarks, bookmarks } = useBookmarkStore();
+      setComments(prev => prev.map(c => {
+        if (Number(c.id) === numericId) {
+          return {
+            ...c,
+            likes: action === 'liked' ? (c.likes || 0) + 1 : Math.max(0, (c.likes || 0) - 1)
+          };
+        }
+        return c;
+      }));
+    } catch (err) {
+      console.error("Like error:", err);
+    }
+  };
 
-useEffect(() => {
-  if (isAuthenticated) {
-    // Спрашиваем бэкенд: "Какие закладки у меня сейчас в базе?"
-    fetchBookmarks();
-  }
-}, [isAuthenticated, id]); 
+  const { isAuthenticated } = useAuthStore();
+  const { fetchBookmarks, bookmarks } = useBookmarkStore();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchBookmarks();
+    }
+  }, [isAuthenticated, id]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-neon-blue font-mono">LOADING DATA...</div>
   if (!manga) return <div className="min-h-screen flex items-center justify-center text-white">Manga not found</div>
 
   const displayChapters = chaptersExpanded ? chapters : chapters.slice(0, 10)
-  const stars = Math.round((manga.avg_rating || 0) / 2) // База от 1 до 10, звезды от 1 до 5
+  const stars = Math.round((manga.avg_rating || 0) / 2)
 
   return (
     <div className="min-h-screen pt-16">
-      {/* ── Cinematic backdrop ─────────────────────────── */}
       <div className="relative w-full overflow-hidden" style={{ height: 'clamp(300px, 42vh, 480px)' }}>
         <img
           src={getImageUrl(manga.cover)}
@@ -150,7 +164,6 @@ useEffect(() => {
 
       <div className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-10 -mt-64 relative z-10">
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start mb-12">
-          {/* Cover poster */}
           <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} className="flex-none">
             <div className="relative">
               <img
@@ -161,8 +174,7 @@ useEffect(() => {
             </div>
           </motion.div>
 
-          {/* Text info */}
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex-1 min-w-0 pt-44 lg:pt-0">
+          <div className="flex-1 min-w-0 pt-44 lg:pt-0">
             <div className="flex flex-wrap gap-2 mb-3">
               <span className={`text-xs font-mono px-2 py-0.5 rounded-sm status-${manga.status}`}>
                 {manga.status?.toUpperCase()}
@@ -176,7 +188,7 @@ useEffect(() => {
 
             <div className="flex items-center gap-3 mb-4">
               <div className="flex">
-                {[1,2,3,4,5].map(i => <StarIcon key={i} filled={i <= stars} />)}
+                {[1, 2, 3, 4, 5].map(i => <StarIcon key={i} filled={i <= stars} />)}
               </div>
               <span className="font-mono font-bold text-yellow-400">{manga.avg_rating || '0.0'}</span>
               <span className="text-text-muted text-xs font-mono">/ 10</span>
@@ -207,34 +219,51 @@ useEffect(() => {
 
             <p className="text-text-secondary leading-relaxed mb-7 max-w-2xl">{manga.description}</p>
 
+            {/* --- ВЫБОР РЕЙТИНГА 1-10 --- */}
+            <div className="flex flex-col gap-2 mb-6">
+              <p className="text-[10px] font-mono text-text-muted uppercase tracking-widest">Rate this manga:</p>
+              <div className="flex flex-wrap gap-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => handleRate(num)}
+                    className={`w-8 h-8 rounded-sm border text-[10px] font-bold transition-all ${userRating >= num
+                        ? 'bg-yellow-400 border-yellow-400 text-void shadow-[0_0_10px_rgba(250,204,21,0.4)]'
+                        : 'bg-surface-3 border-border text-text-muted hover:border-yellow-400 hover:text-yellow-400'
+                      }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-3">
               <Link
-  to={firstChapterId ? `/reader/${manga.id}/${firstChapterId}` : '#'}
-  className="..."
->
-  Read Now
-</Link>
+                to={firstChapterId ? `/reader/${manga.id}/${firstChapterId}` : '#'}
+                className="flex items-center gap-2.5 px-7 py-3.5 bg-white text-void font-display font-bold text-sm rounded-sm hover:bg-white/90 shadow-lg"
+              >
+                Read Now
+              </Link>
 
               <button
-  onClick={() => bookmarked ? removeBookmark(manga.id) : addBookmark(manga)}
-  className={`flex items-center gap-2.5 px-6 py-3.5 border font-medium text-sm rounded-sm transition-all duration-300 ${
-    bookmarked
-      ? 'bg-red-500/10 border-red-500/50 text-red-500' // Если сохранено — красная рамка
-      : 'bg-surface-2 border-border text-text-secondary hover:border-neon-blue hover:text-white'
-  }`}
->
-  <svg className="w-4 h-4" fill={bookmarked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-  </svg>
-  {bookmarked ? 'Remove from Library' : 'Save to Library'}
-</button>
+                onClick={() => bookmarked ? removeBookmark(manga.id) : addBookmark(manga)}
+                className={`flex items-center gap-2.5 px-6 py-3.5 border font-medium text-sm rounded-sm transition-all duration-300 ${bookmarked
+                    ? 'bg-red-500/10 border-red-500/50 text-red-500'
+                    : 'bg-surface-2 border-border text-text-secondary hover:border-neon-blue hover:text-white'
+                  }`}
+              >
+                <svg className="w-4 h-4" fill={bookmarked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                {bookmarked ? 'Remove from Library' : 'Save to Library'}
+              </button>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
           <div>
-            {/* Chapter list */}
             <div className="mb-12">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
@@ -264,14 +293,12 @@ useEffect(() => {
               )}
             </div>
 
-            {/* Discussion */}
             <div>
               <div className="flex items-center gap-3 mb-6">
                 <div className="section-label">Community</div>
                 <h2 className="text-xl font-display font-bold text-text-primary">Discussion</h2>
               </div>
 
-              {/* Comment form */}
               <div className="flex gap-3 mb-7">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-neon-blue to-neon-violet flex items-center justify-center text-void text-xs font-bold flex-none">
                   {user?.username?.slice(0, 2).toUpperCase() || '??'}
@@ -293,7 +320,6 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Comment list */}
               <div className="space-y-4">
                 {comments.map((c, i) => (
                   <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
@@ -306,24 +332,23 @@ useEffect(() => {
                         <span className="text-xs text-text-muted font-mono">{new Date(c.created_at).toLocaleDateString()}</span>
                       </div>
                       <p className="text-sm text-text-secondary leading-relaxed mb-3">{c.body}</p>
-                     <button 
-  onClick={() => handleToggleLike(c.id)}
-  className={`flex items-center gap-1.5 text-xs font-mono transition-all ${
-    localLikes.has(Number(c.id)) // <-- Важно Number(c.id)
-      ? 'text-red-500 font-bold' 
-      : 'text-text-muted hover:text-white'
-  }`}
->
-  <svg 
-    className="w-4 h-4" 
-    fill={localLikes.has(Number(c.id)) ? 'currentColor' : 'none'} 
-    viewBox="0 0 24 24" 
-    stroke="currentColor"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-  </svg>
-  {c.likes || 0}
-</button>
+                      <button
+                        onClick={() => handleToggleLike(c.id)}
+                        className={`flex items-center gap-1.5 text-xs font-mono transition-all ${localLikes.has(Number(c.id))
+                            ? 'text-red-500 font-bold'
+                            : 'text-text-muted hover:text-white'
+                          }`}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill={localLikes.has(Number(c.id)) ? 'currentColor' : 'none'}
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        {c.likes || 0}
+                      </button>
                     </div>
                   </motion.div>
                 ))}
@@ -331,7 +356,6 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Right sidebar */}
           <div className="space-y-6">
             <div className="bg-surface-card border border-border rounded-[4px] p-5">
               <h3 className="text-sm font-display font-bold text-text-primary mb-4">Manga Details</h3>
