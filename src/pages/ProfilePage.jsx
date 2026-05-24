@@ -29,9 +29,12 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('Bookmarks')
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState({ username: user?.username || '', bio: 'Manga enthusiast. Reading since 2019.' })
+const [historyCount, setHistoryCount] = useState(0);
 
   if (!isAuthenticated) return <Navigate to="/login" state={{ from: '/profile' }} replace />
-
+useEffect(() => {
+  mangaService.getProgress().then(data => setHistoryCount(data?.length || 0));
+}, []);
   return (
     <div className="min-h-screen pt-16">
       {/* ── Profile hero ─────────────────────────────── */}
@@ -86,6 +89,7 @@ export default function ProfilePage() {
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
             <StatCard value={bookmarks.length} label="Bookmarks" accent />
+            <StatCard value={historyCount} label="Series Read" />
             <StatCard value="47" label="Chapters Read" />
             <StatCard value="12" label="Series Following" />
             <StatCard value="8" label="Completed" />

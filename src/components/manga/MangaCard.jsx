@@ -68,7 +68,7 @@ export function MangaCardSmall({ manga, index = 0 }) {
           <div className="absolute bottom-0 left-0 right-0 p-3 z-[4] translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
             <div className="flex flex-wrap gap-1 mb-1.5">
               {manga.genres?.slice(0, 2).map(g => (
-                <span key={g} className="text-[9px] font-mono bg-black/60 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-sm border border-white/10">{g}</span>
+                <span key={g.id || g} className="text-[9px] font-mono bg-black/60 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-sm border border-white/10">{g.name || g}</span>
               ))}
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function MangaCard({ manga, index = 0 }) {
           <div className="absolute inset-x-0 bottom-0 p-4 z-[4] translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
             <div className="flex flex-wrap gap-1.5 mb-2">
               {manga.genres?.slice(0, 2).map(g => (
-                <span key={g} className="text-[10px] font-mono text-white/70 bg-white/10 backdrop-blur-sm px-2 py-0.5 rounded-sm border border-white/10">{g}</span>
+                <span key={g.id || g} className="text-[10px] font-mono text-white/70 bg-white/10 backdrop-blur-sm px-2 py-0.5 rounded-sm border border-white/10">{g.name || g}</span>
               ))}
             </div>
             <p className="text-xs text-white/70 leading-relaxed line-clamp-2">{manga.description}</p>

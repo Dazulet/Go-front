@@ -25,7 +25,7 @@ function GenreSpotlight() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {genres.map((g, i) => (
           <motion.a
-            href={'/catalog?genre=' + g.name}
+            href={`/catalog?genre_id=${g.id}`} 
             key={g.name}
             initial={{ opacity: 0, scale: 0.94 }}
             whileInView={{ opacity: 1, scale: 1 }}

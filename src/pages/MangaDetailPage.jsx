@@ -27,43 +27,45 @@ export default function MangaDetailPage() {
   const [isPosting, setIsPosting] = useState(false)
 
   const bookmarked = isBookmarked(id)
+const firstChapterId = chapters.length > 0 ? chapters[0].id : null;
 
   useEffect(() => {
-    const fetchAllData = async () => {
-      setLoading(true)
-      try {
-        // Загружаем данные из микросервисов параллельно
-        const [mangaData, chaptersData, commentsData] = await Promise.all([
-          mangaService.getById(id),
-          mangaService.getChapters(id),
-          commentService.getByManga(id)
-        ])
-        console.log("Comments from server:", commentsData); // ПРОВЕРЬ: что в поле likes у каждого коммента?
+  // Проверка: если id нет, или это строка "undefined", или это не число — СТОП
+  const mangaId = parseInt(id);
+  if (!id || id === 'undefined' || isNaN(mangaId)) {
+    console.log("Ожидание корректного ID...");
+    return;
+  }
 
-        setManga(mangaData)
-        setChapters(chaptersData || [])
-        setComments(commentsData || [])
-        // --- СИНХРОНИЗАЦИЯ ЛАЙКОВ ---
-      // Собираем ID всех комментов, где is_liked === true
-      const likedIds = new Set();
-      commentsData.forEach(c => {
-        if (c.is_liked) likedIds.add(c.id);
-        // Не забываем про лайки в ответах, если они есть
-        c.replies?.forEach(reply => {
-          if (reply.is_liked) likedIds.add(reply.id);
-        });
-      });
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      // Теперь запросы полетят только с валидным числом
+      const [mangaData, chaptersData, commentsData] = await Promise.all([
+        mangaService.getById(mangaId),
+        mangaService.getChapters(mangaId),
+        commentService.getByManga(mangaId)
+      ]);
       
+      setManga(mangaData);
+      setChapters(chaptersData || []);
+      setComments(commentsData || []);
+      
+      const likedIds = new Set();
+      (commentsData || []).forEach(c => {
+        if (c.is_liked) likedIds.add(c.id);
+        c.replies?.forEach(r => { if (r.is_liked) likedIds.add(r.id); });
+      });
       setLocalLikes(likedIds);
-      } catch (err) {
-        console.error("Error fetching data:", err)
-      } finally {
-        setLoading(false)
-      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
     }
-    fetchAllData()
-  }, [id])
+  };
 
+  fetchAllData();
+}, [id]);
   const postComment = async () => {
     if (!commentText.trim() || isPosting) return
     setIsPosting(true)
@@ -197,8 +199,8 @@ useEffect(() => {
 
             <div className="flex flex-wrap gap-2 mb-6">
               {manga.genres?.map(g => (
-                <Link key={g.id} to={`/catalog?genre_id=${g.id}`} className="px-2.5 py-1 text-xs font-mono bg-surface-3 border border-border text-text-secondary rounded-sm hover:text-neon-blue">
-                  {g.name}
+                <Link key={g.id || g} to={`/catalog?genre_id=${g.id || ''}`} className="px-2.5 py-1 text-xs font-mono bg-surface-3 border border-border text-text-secondary rounded-sm hover:text-neon-blue">
+                  {g.name || g}
                 </Link>
               ))}
             </div>
@@ -206,9 +208,13 @@ useEffect(() => {
             <p className="text-text-secondary leading-relaxed mb-7 max-w-2xl">{manga.description}</p>
 
             <div className="flex flex-wrap gap-3">
-              <Link to={`/reader/${manga.id}/1`} className="flex items-center gap-2.5 px-7 py-3.5 bg-white text-void font-display font-bold text-sm rounded-sm hover:bg-white/90 shadow-lg">
-                Read Now
-              </Link>
+              <Link
+  to={firstChapterId ? `/reader/${manga.id}/${firstChapterId}` : '#'}
+  className="..."
+>
+  Read Now
+</Link>
+
               <button
   onClick={() => bookmarked ? removeBookmark(manga.id) : addBookmark(manga)}
   className={`flex items-center gap-2.5 px-6 py-3.5 border font-medium text-sm rounded-sm transition-all duration-300 ${
@@ -240,7 +246,7 @@ useEffect(() => {
               <div className="space-y-1.5">
                 {displayChapters.map((ch, i) => (
                   <motion.div key={ch.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.02 }}>
-                    <Link to={`/reader/${manga.id}/${ch.number}`} className="flex items-center gap-4 px-4 py-3.5 bg-surface-card border border-border rounded-[4px] hover:bg-surface-2 group">
+                    <Link to={`/reader/${manga.id}/${ch.id}`} className="flex items-center gap-4 px-4 py-3.5 bg-surface-card border border-border rounded-[4px] hover:bg-surface-2 group">
                       <span className="text-xs font-mono text-text-muted w-10 flex-none text-right">{ch.number}</span>
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-text-secondary group-hover:text-text-primary">{ch.title || `Chapter ${ch.number}`}</span>

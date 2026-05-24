@@ -46,6 +46,8 @@ export const mangaService = {
   update: (id, data) => mangaApi.put(`/manga/${id}`, data).then(res => res.data.data),
   delete: (id) => mangaApi.delete(`/manga/${id}`).then(res => res.data),
   
+
+
   // Загрузка обложки
   uploadCover: (id, file) => {
     const formData = new FormData();
@@ -63,19 +65,41 @@ export const mangaService = {
   deleteChapter: (id) => mangaApi.delete(`/chapters/${id}`).then(res => res.data),
 
   // Загрузка страниц в главу
-  uploadPages: (chapterId, files, mangaId) => {
-    const formData = new FormData();
-    files.forEach(file => formData.append('pages', file));
-    formData.append('manga_id', mangaId);
-    return mangaApi.post(`/chapters/${chapterId}/pages`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    }).then(res => res.data);
-  },
+  // src/services/api.js
+
+uploadPages: (chapterId, files, mangaId) => {
+  const fd = new FormData(); // Мы создали переменную fd
+  
+  // Добавляем файлы
+  files.forEach(file => {
+    fd.append('pages', file); 
+  });
+  
+  // ИСПРАВЛЕНИЕ: здесь было formData.append, а нужно fd.append
+  fd.append('manga_id', mangaId); 
+  
+  return mangaApi.post(`/chapters/${chapterId}/pages`, fd, {
+    headers: { 
+      // Важно: браузер сам подставит правильный boundary для multipart, 
+      // поэтому лучше оставить заголовок пустым или не указывать его вручную вовсе
+      'Content-Type': 'multipart/form-data' 
+    }
+  }).then(res => res.data);
+},
 
   // Прочее
   getGenres: () => mangaApi.get('/genres').then(res => res.data.data),
+    createGenre: (data) => mangaApi.post('/genres', data).then(res => res.data.data),
+
   getTags: () => mangaApi.get('/tags').then(res => res.data.data),
-  saveProgress: (data) => mangaApi.post('/progress', data).then(res => res.data),
+  saveProgress: (mangaId, chapterId, pageNum = 1) => 
+  mangaApi.post('/progress', { 
+    manga_id: parseInt(mangaId), 
+    chapter_id: parseInt(chapterId), 
+    page_number: pageNum 
+  }).then(res => res.data),
+
+getProgress: () => mangaApi.get('/progress').then(res => res.data.data),
 }
 
 // --- AUTH SERVICE (Управление пользователями) ---
@@ -117,7 +141,7 @@ export const commentService = {
   getByManga: (mangaId) => commentApi.get(`/comments?manga_id=${mangaId}`).then(res => res.data.data),
   create: (data) => commentApi.post('/comments', data).then(res => res.data.data),
   delete: (id) => commentApi.delete(`/comments/${id}`).then(res => res.data),
-  toggleLike: (commentId) => commentApi.post(`/comments/${commentId}/like`).then(res => res.data),
+toggleLike: (id) => commentApi.post(`/comments/${id}/like`).then(res => res.data),
 }
 
 // Утилита для получения полных URL картинок (т.к. бэк шлет относительные пути)
